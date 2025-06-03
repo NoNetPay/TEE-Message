@@ -1,11 +1,12 @@
 // Example of using the nero Devnet with Viem
 const { createPublicClient, createWalletClient, http } = require("viem");
 const { privateKeyToAccount } = require("viem/accounts");
-const { neroDevnet } = require("./chains"); // Import our custom chain
+const { neroDevnet } = require("./neroConfig"); // Import our custom chain
+const config = require("../config");
 
 const publicClient = createPublicClient({
   chain: neroDevnet,
-  transport: http(),
+  transport: http(config.NERO_RPC_URL),
 });
 
 async function getCurrentBlockNumber() {
@@ -24,7 +25,7 @@ function createWallet(privateKey) {
   return createWalletClient({
     account,
     chain: neroDevnet,
-    transport: http(),
+    transport: http(config.NERO_RPC_URL),
   });
 }
 

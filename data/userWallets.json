@@ -1,0 +1,12 @@
+{
+  "+917498007214": {
+    "phoneNumber": "+917498007214",
+    "privateKey": "0xed56c980e2e6a9422ad10004f4c93d16c94e8ddc04afe1f30447f4f8e920f495",
+    "aaWalletAddress": "0x6fE61260929CEd4fabdF49D8FB735f076790D770",
+    "signerAddress": "0xA4555745defef291732b51176c984aE69EFC7Da1",
+    "isDeployed": false,
+    "registeredAt": "2025-06-03T22:05:14.561Z",
+    "chainId": 689,
+    "network": "NERO Chain Testnet"
+  }
+}

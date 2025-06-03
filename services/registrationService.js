@@ -1,162 +1,215 @@
-const sqlite3 = require("sqlite3").verbose();
-const config = require("../config");
-const utils = require("../utils");
-const {
-  encodeFunctionData,
-  createPublicClient,
-  createWalletClient,
-  http,
-} = require("viem");
-const { privateKeyToAccount, generatePrivateKey } = require("viem/accounts");
-const SafeArtifact = require("@safe-global/safe-contracts/build/artifacts/contracts/Safe.sol/Safe.json");
-const SafeProxyFactoryArtifact = require("@safe-global/safe-contracts/build/artifacts/contracts/proxies/SafeProxyFactory.sol/SafeProxyFactory.json");
+// services/neroRegistrationService.js
+import { ethers } from 'ethers';
+import { 
+  getAAWalletAddress, 
+  createSignerFromPrivateKey, 
+  isAAWalletDeployed,
+  getAAWalletBalance 
+} from '../utils/aaUtils.js';
+import { NERO_CHAIN_CONFIG } from '../utils/neroConfig.js';
 
-const SAFE_ABI = SafeArtifact.abi;
-const SAFE_BYTECODE = SafeArtifact.bytecode;
-const SAFE_PROXY_FACTORY_ABI = SafeProxyFactoryArtifact.abi;
-const SAFE_PROXY_FACTORY_BYTECODE = SafeProxyFactoryArtifact.bytecode;
+// In-memory storage for user wallets (use database in production)
+const userWallets = new Map();
 
-const RPC_URL = process.env.RPC_URL || "https://eth.llamarpc.com";
-const CHAIN_ID = Number(process.env.CHAIN_ID || 1);
-const ALICE_PRIVATE_KEY = process.env.ALICE_PRIVATE_KEY.startsWith("0x")
-  ? process.env.ALICE_PRIVATE_KEY
-  : `0x${process.env.ALICE_PRIVATE_KEY}`;
+// Store user registration data to a JSON file for persistence (optional)
+import fs from 'fs';
+import path from 'path';
 
-const customChain = {
-  id: CHAIN_ID,
-  name: process.env.CHAIN_NAME || "Custom Chain",
-  network: process.env.CHAIN_NETWORK || "custom",
-  nativeCurrency: {
-    name: process.env.NATIVE_CURRENCY_NAME || "Ether",
-    symbol: process.env.NATIVE_CURRENCY_SYMBOL || "ETH",
-    decimals: Number(process.env.NATIVE_CURRENCY_DECIMALS || 18),
-  },
-  rpcUrls: {
-    default: { http: [RPC_URL] },
-    public: { http: [RPC_URL] },
-  },
-};
+const WALLETS_FILE = path.join(process.cwd(), 'data', 'userWallets.json');
 
-const publicClient = createPublicClient({
-  chain: customChain,
-  transport: http(RPC_URL),
-});
-const aliceAccount = privateKeyToAccount(ALICE_PRIVATE_KEY);
-const walletClient = createWalletClient({
-  account: aliceAccount,
-  chain: customChain,
-  transport: http(RPC_URL),
-});
-
-async function deployContract(abi, bytecode) {
-  const hash = await walletClient.deployContract({
-    abi,
-    bytecode,
-    account: aliceAccount,
-  });
-  const receipt = await publicClient.waitForTransactionReceipt({ hash });
-  return receipt.contractAddress;
-}
-
-async function deploySafeForUser(ownerAccount) {
-  const safeAddress = "0x0000000000000000000000000000000000000000";
-
-  return safeAddress;
-}
-
-async function registerIfNeeded(phoneNumber) {
-  const db = new sqlite3.Database(config.DB_PATH);
-  const checkQuery = `SELECT * FROM users WHERE phone_number = ?`;
-
-  return new Promise((resolve, reject) => {
-    db.get(checkQuery, [phoneNumber], async (err, row) => {
-      if (err) return reject(err);
-      if (row) {
-        db.close();
-        console.log(`✅ Already registered: ${phoneNumber}`);
-        return resolve("already_registered");
-      }
-
-      const privateKey = generatePrivateKey();
-      const ownerAccount = privateKeyToAccount(privateKey);
-      const encryptedPrivateKey = utils.encrypt(privateKey);
-
-      console.log(`🔨 Deploying Safe for ${phoneNumber}...`);
-      const safeAddress = await deploySafeForUser(ownerAccount);
-
-      const insertQuery = `INSERT INTO users (phone_number, address, encrypted_private_key, safe_address, deployed_by) VALUES (?, ?, ?, ?, ?)`;
-      db.run(
-        insertQuery,
-        [
-          phoneNumber,
-          ownerAccount.address,
-          encryptedPrivateKey,
-          safeAddress,
-          aliceAccount.address,
-        ],
-        (err) => {
-          db.close();
-          if (err) return reject(err);
-
-          console.log(`✅ Registered and deployed Safe for ${phoneNumber}`);
-
-          resolve({ ownerAddress: ownerAccount.address, safeAddress });
-        }
-      );
-    });
-  });
-}
-
-async function processNewMessages() {
-  const db = new sqlite3.Database(config.DB_PATH, sqlite3.OPEN_READONLY);
-  const query = `
-    SELECT 
-      handle.id AS phone_number,
-      message.text
-    FROM 
-      message
-    JOIN 
-      handle ON message.handle_id = handle.ROWID
-    WHERE 
-      message.is_from_me = 0
-    ORDER BY 
-      message.date DESC
-    LIMIT 50
-  `;
-
-  db.all(query, async (err, rows) => {
-    db.close();
-    if (err) throw err;
-
-    for (const row of rows) {
-      const phoneNumber = row.phone_number;
-      const text = row.text?.trim().toLowerCase();
-
-      if (text === "register") {
-        try {
-          const result = await registerIfNeeded(phoneNumber);
-          console.log(`✅ Processed registration for ${phoneNumber}:`, result);
-          if (result !== "already_registered") {
-            await utils.sendMessageViaAppleScript(
-              phoneNumber,
-              `✅ Safe created!\nOwner: ${result.ownerAddress}\nSafe: ${result.safeAddress}`
-            );
-          } else {
-            await utils.sendMessageViaAppleScript(
-              phoneNumber,
-              `ℹ️ You are already registered.`
-            );
-          }
-        } catch (err) {
-          console.error(`❌ Error processing ${phoneNumber}:`, err.message);
-        }
-      }
+// Load existing wallets from file on startup
+const loadWalletsFromFile = () => {
+  try {
+    if (fs.existsSync(WALLETS_FILE)) {
+      const data = fs.readFileSync(WALLETS_FILE, 'utf8');
+      const wallets = JSON.parse(data);
+      
+      // Restore to Map
+      Object.entries(wallets).forEach(([phoneNumber, walletData]) => {
+        userWallets.set(phoneNumber, walletData);
+      });
+      
+      console.log(`📱 Loaded ${userWallets.size} existing wallet registrations`);
     }
-    console.log("✅ Finished checking messages.");
-  });
+  } catch (error) {
+    console.error("Error loading wallets from file:", error);
+  }
+};
+
+// Save wallets to file for persistence
+const saveWalletsToFile = () => {
+  try {
+    // Ensure data directory exists
+    const dataDir = path.dirname(WALLETS_FILE);
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    
+    // Convert Map to Object and save
+    const walletsObject = Object.fromEntries(userWallets);
+    fs.writeFileSync(WALLETS_FILE, JSON.stringify(walletsObject, null, 2));
+  } catch (error) {
+    console.error("Error saving wallets to file:", error);
+  }
+};
+
+// Initialize wallets on module load
+loadWalletsFromFile();
+
+/**
+ * Register a new user with NERO Chain Account Abstraction wallet
+ * @param {string} phoneNumber - User's phone number
+ * @returns {Object|string} Registration data or "already_registered"
+ */
+export async function registerIfNeeded(phoneNumber) {
+  try {
+    console.log(`🔍 Checking registration for: ${phoneNumber}`);
+    
+    // Check if user is already registered
+    if (userWallets.has(phoneNumber)) {
+      console.log(`✅ User ${phoneNumber} already registered`);
+      return "already_registered";
+    }
+
+    console.log(`🚀 Starting NERO AA registration for: ${phoneNumber}`);
+
+    // Generate a unique private key for this user
+    // In production, consider using deterministic key derivation
+    const wallet = ethers.Wallet.createRandom();
+    const privateKey = wallet.privateKey;
+    
+    console.log(`🔑 Generated private key for ${phoneNumber}`);
+    
+    // Create signer from the private key
+    const signer = createSignerFromPrivateKey(privateKey);
+    const signerAddress = await signer.getAddress();
+    
+    console.log(`📝 Signer address: ${signerAddress}`);
+    
+    // Get the AA wallet address (counterfactual - not deployed yet)
+    console.log(`⏳ Calculating AA wallet address...`);
+    const aaWalletAddress = await getAAWalletAddress(signer);
+    
+    // Check if wallet is already deployed (shouldn't be for new users)
+    const isDeployed = await isAAWalletDeployed(aaWalletAddress);
+    
+    // Store the user data
+    const userData = {
+      phoneNumber,
+      privateKey, // ⚠️ IMPORTANT: Store securely in production!
+      aaWalletAddress,
+      signerAddress,
+      isDeployed,
+      registeredAt: new Date().toISOString(),
+      chainId: NERO_CHAIN_CONFIG.chainId,
+      network: NERO_CHAIN_CONFIG.chainName
+    };
+    
+    // Store in memory and file
+    userWallets.set(phoneNumber, userData);
+    saveWalletsToFile();
+    
+    console.log(`✅ User ${phoneNumber} registered successfully!`);
+    console.log(`📍 AA Wallet: ${aaWalletAddress}`);
+    console.log(`🏗️ Deployed: ${isDeployed ? 'Yes' : 'No (Counterfactual)'}`);
+    
+    return {
+      aaWalletAddress,
+      signerAddress,
+      isCounterfactual: !isDeployed,
+      chainId: NERO_CHAIN_CONFIG.chainId,
+      network: NERO_CHAIN_CONFIG.chainName,
+      explorerUrl: `${NERO_CHAIN_CONFIG.explorer}/address/${aaWalletAddress}`
+    };
+    
+  } catch (error) {
+    console.error(`❌ Error registering user ${phoneNumber}:`, error);
+    throw new Error(`Registration failed: ${error.message}`);
+  }
 }
 
-module.exports = {
-  registerIfNeeded,
-  processNewMessages,
-};
+/**
+ * Get user wallet information
+ * @param {string} phoneNumber - User's phone number
+ * @returns {Object|null} User wallet data or null if not found
+ */
+export function getUserWallet(phoneNumber) {
+  return userWallets.get(phoneNumber) || null;
+}
+
+/**
+ * Get user's signer instance
+ * @param {string} phoneNumber - User's phone number
+ * @returns {ethers.Wallet|null} Signer instance or null
+ */
+export function getUserSigner(phoneNumber) {
+  const userData = userWallets.get(phoneNumber);
+  if (!userData) return null;
+  
+  return createSignerFromPrivateKey(userData.privateKey);
+}
+
+/**
+ * Get all registered users (for admin purposes)
+ * @returns {Array} Array of phone numbers
+ */
+export function getAllRegisteredUsers() {
+  return Array.from(userWallets.keys());
+}
+
+/**
+ * Check wallet deployment status and balance
+ * @param {string} phoneNumber - User's phone number
+ * @returns {Object} Wallet status information
+ */
+export async function getWalletStatus(phoneNumber) {
+  try {
+    const userData = userWallets.get(phoneNumber);
+    if (!userData) {
+      throw new Error("User not registered");
+    }
+
+    const isDeployed = await isAAWalletDeployed(userData.aaWalletAddress);
+    const balance = await getAAWalletBalance(userData.aaWalletAddress);
+    
+    // Update deployment status if it changed
+    if (isDeployed !== userData.isDeployed) {
+      userData.isDeployed = isDeployed;
+      userWallets.set(phoneNumber, userData);
+      saveWalletsToFile();
+    }
+    
+    return {
+      aaWalletAddress: userData.aaWalletAddress,
+      signerAddress: userData.signerAddress,
+      isDeployed,
+      balance: `${balance} ${NERO_CHAIN_CONFIG.currency}`,
+      network: userData.network,
+      registeredAt: userData.registeredAt,
+      explorerUrl: `${NERO_CHAIN_CONFIG.explorer}/address/${userData.aaWalletAddress}`
+    };
+    
+  } catch (error) {
+    console.error(`Error getting wallet status for ${phoneNumber}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Remove user registration (for testing/admin purposes)
+ * @param {string} phoneNumber - User's phone number
+ * @returns {boolean} Success status
+ */
+export function unregisterUser(phoneNumber) {
+  try {
+    const deleted = userWallets.delete(phoneNumber);
+    if (deleted) {
+      saveWalletsToFile();
+      console.log(`🗑️ User ${phoneNumber} unregistered`);
+    }
+    return deleted;
+  } catch (error) {
+    console.error(`Error unregistering user ${phoneNumber}:`, error);
+    return false;
+  }
+}
