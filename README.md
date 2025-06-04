@@ -4,6 +4,11 @@ NoNetTee is a decentralized messaging protocol built on top of the NERO Chain, u
 
 ## Protocol Overview
 
+#### 🧬 Example Flow: Sending USDC Offline
+User A (offline) creates a signed intent:
+“Send 5 USDC to User B”
+![image](https://github.com/user-attachments/assets/4c607b27-dad5-4dab-bcab-c05c9a6608f8)
+
 The protocol consists of several key components:
 
 1. **DStack Integration**: Utilizes the DStack SDK for secure key derivation and message handling
