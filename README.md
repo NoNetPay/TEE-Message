@@ -1,6 +1,6 @@
-# NoNetTee - Decentralized Messaging Protocol
+# Offline Crypto Yield & Payment Network
 
-NoNetTee is a decentralized messaging protocol built on top of the NERO Chain, utilizing the DStack SDK for secure and private communication. The protocol enables users to send and receive messages in a decentralized manner while maintaining privacy and security.
+NoNetPay allows crypto users to send payments and check balances without internet access. Users create signed intents like "Send 5 USDC" which are shared over Bluetooth, SMS, or mesh WiFi. These messages are passed to a trusted relayer and then to a secure TEE (Trusted Execution Environment), which verifies the intent and signs the transaction using a AA wallet. Idle funds are automatically routed to DeFi lending protocols to earn passive yield.
 
 ## Protocol Overview
 
