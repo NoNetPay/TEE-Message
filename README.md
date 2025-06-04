@@ -19,12 +19,52 @@ The protocol consists of several key components:
 - RESTful API endpoints for various operations
 - SQLite database for message persistence
 
-## Contract Details
+## Deployed Contracts
 
-The protocol uses smart contracts on the NERO Chain for:
-- Message storage and retrieval
-- User registration and authentication
-- Message encryption key management
+- **USDC Mock Contract**: `0xec690C24B7451B85B6167a06292e49B5DA822fBE`
+  - A mock implementation of USDC token for testing purposes
+  - Supports minting and burning of tokens
+  - Uses 6 decimal places like the real USDC
+
+- **Yield Contract**: `0x2eDaF060FE9160D97B9f70007CBb476fA22249BC`
+  - Implements a lending pool with the following features:
+    - ETH to USDC collateral conversion
+    - Direct USDC deposits
+    - Borrowing with 75% LTV ratio
+    - 5% interest rate on loans
+    - Flash loan functionality with 0.1% fee
+    - Health factor monitoring
+    - Collateral withdrawal with safety checks
+
+### Contract Features
+
+#### USDC Mock Contract
+- ERC20 compliant token implementation
+- Minting and burning capabilities
+- 6 decimal precision
+- Simple ownership controls
+
+#### Yield Contract
+- **Collateral Management**:
+  - Accepts ETH and converts to USDC via external protocol
+  - Direct USDC deposits supported
+  - Collateral withdrawal with LTV checks
+
+- **Lending Features**:
+  - 75% Loan-to-Value (LTV) ratio
+  - 5% fixed interest rate
+  - Health factor monitoring
+  - Repayment functionality
+
+- **Flash Loans**:
+  - 0.1% fee on flash loans
+  - Safety checks for loan repayment
+  - Integration with flash loan receiver interface
+
+- **External Protocol Integration**:
+  - Interface for external lending protocols
+  - ETH to USDC conversion
+  - Admin controls for external protocol interactions
 
 ## Setup Instructions
 
