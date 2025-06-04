@@ -1,11 +1,11 @@
 {
-  "+917498007214": {
-    "phoneNumber": "+917498007214",
-    "privateKey": "0xed56c980e2e6a9422ad10004f4c93d16c94e8ddc04afe1f30447f4f8e920f495",
-    "aaWalletAddress": "0x6fE61260929CEd4fabdF49D8FB735f076790D770",
-    "signerAddress": "0xA4555745defef291732b51176c984aE69EFC7Da1",
+  "+918999545548": {
+    "phoneNumber": "+918999545548",
+    "privateKey": "0x99e56c08e65bc87f99b19458e2243c01da8529a2e1827034644236d06849a812",
+    "aaWalletAddress": "0xfb3c36A7AD874593D6d49b8a702ee15313DcB94F",
+    "signerAddress": "0xF02EE24D2e2371a670ffe0187ad2Cb9B9824CC45",
     "isDeployed": false,
-    "registeredAt": "2025-06-03T22:05:14.561Z",
+    "registeredAt": "2025-06-03T23:51:01.758Z",
     "chainId": 689,
     "network": "NERO Chain Testnet"
   }

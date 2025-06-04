@@ -13,7 +13,7 @@ import { TappdClient } from "@phala/dstack-sdk";
 import { toViemAccount } from '@phala/dstack-sdk/viem';
 import { toKeypair } from '@phala/dstack-sdk/solana';
 
-const port = process.env.PORT || 3000;
+const port = 8000;
 const expressPort = 4000;
 
 // 1. Start Bun server for tappd routes

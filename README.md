@@ -1,65 +1,129 @@
-# Phala Cloud Bun + TypeScript Starter
+# NoNetTee - Decentralized Messaging Protocol
 
-This is a template for developing a [Bun](https://bun.sh/)-based app with boilerplate code targeting deployment on [Phala Cloud](https://cloud.phala.network/) and [DStack](https://github.com/dstack-TEE/dstack/). It includes the SDK by default to make integration with TEE features easier. This repo also includes a default Dockerfile and docker-compose.yml for deployment.
+NoNetTee is a decentralized messaging protocol built on top of the NERO Chain, utilizing the DStack SDK for secure and private communication. The protocol enables users to send and receive messages in a decentralized manner while maintaining privacy and security.
 
-## Development
+## Protocol Overview
 
-First, you need to clone this repo:
+The protocol consists of several key components:
 
-```shell
-git clone --depth 1 https://github.com/Phala-Network/phala-cloud-bun-starter.git
+1. **DStack Integration**: Utilizes the DStack SDK for secure key derivation and message handling
+2. **NERO Chain Integration**: Leverages the NERO Chain for message storage and retrieval
+3. **Message Polling System**: Continuously monitors for new messages
+4. **Multi-Chain Support**: Currently supports Ethereum and Solana key derivation
+
+### Key Features
+
+- Secure message encryption and decryption
+- Multi-chain wallet support
+- Real-time message polling
+- RESTful API endpoints for various operations
+- SQLite database for message persistence
+
+## Contract Details
+
+The protocol uses smart contracts on the NERO Chain for:
+- Message storage and retrieval
+- User registration and authentication
+- Message encryption key management
+
+## Setup Instructions
+
+### Prerequisites
+
+- Node.js (v16 or higher)
+- Bun runtime
+- SQLite3
+- DStack Simulator
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd NoNetTee
 ```
 
-Next, let's initialize the development environment:
+2. Install dependencies:
+```bash
+bun install
+```
 
-```shell
-bun i
+3. Set up environment variables:
+```bash
 cp env.example .env
+# Edit .env with your configuration
 ```
 
-We also need to download the DStack simulator:
-
-```shell
-# Mac
-wget https://github.com/Leechael/tappd-simulator/releases/download/v0.1.4/tappd-simulator-0.1.4-aarch64-apple-darwin.tgz
-tar -xvf tappd-simulator-0.1.4-aarch64-apple-darwin.tgz
-cd tappd-simulator-0.1.4-aarch64-apple-darwin
-./tappd-simulator -l unix:/tmp/tappd.sock
-
-# Linux
-wget https://github.com/Leechael/tappd-simulator/releases/download/v0.1.4/tappd-simulator-0.1.4-x86_64-linux-musl.tgz
-tar -xvf tappd-simulator-0.1.4-x86_64-linux-musl.tgz
-cd tappd-simulator-0.1.4-x86_64-linux-musl
-./tappd-simulator -l unix:/tmp/tappd.sock
+4. Initialize the database:
+```bash
+bun run seed.js
 ```
 
-Once the simulator is running, you need to open another terminal to start your Bun development server:
+5. Start the DStack simulator:
+```bash
+# Make sure the simulator is running on the default port
+```
 
-```shell
+6. Start the application:
+```bash
 bun run dev
 ```
 
-By default, the Bun development server will listen on port 3000. Open http://127.0.0.1:3000/tdx_quote in your browser to get the quote with reportdata `test`.
+The application will start two servers:
+- Bun server on port 8000 (DStack routes)
+- Express server on port 4000 (API endpoints)
 
-This repo also includes code snippets for the following common use cases:
+## API Endpoints
 
-- `/tdx_quote`: The `reportdata` is `test` and generates the quote for attestation report via `tdxQuote` API.
-- `/tdx_quote_raw`: The `reportdata` is `Hello DStack!` and generates the quote for attestation report. The difference from `/tdx_quote` is that you can see the raw text `Hello DStack!` in [Attestation Explorer](https://proof.t16z.com/).
-- `/derive_key`: Basic example of the `deriveKey` API.
-- `/ethereum`: Using the `deriveKey` API to generate a deterministic wallet for Ethereum, a.k.a. a wallet held by the TEE instance.
-- `/solana`: Using the `deriveKey` API to generate a deterministic wallet for Solana, a.k.a. a wallet held by the TEE instance.
-- `/info`: Returns the TCB Info of the hosted CVM.
+### DStack Routes (Port 8000)
 
-## Build
+- `GET /`: Get DStack client information
+- `GET /tdx_quote`: Get TDX quote
+- `GET /tdx_quote_raw`: Get raw TDX quote
+- `GET /derive_key`: Derive a key
+- `GET /ethereum`: Get Ethereum address
+- `GET /solana`: Get Solana address
 
-You need to build the image and push it to DockerHub for deployment. The following instructions are for publishing to a public registry via DockerHub:
+### Express Routes (Port 4000)
 
-```shell
-sudo docker build . -t leechael/phala-cloud-bun-starter
-sudo docker push leechael/phala-cloud-bun-starter
+- Message handling endpoints
+- User management endpoints
+- Authentication endpoints
+
+## Development
+
+### Project Structure
+
+```
+NoNetTee/
+├── contracts/         # Smart contract implementations
+├── db/               # Database setup and migrations
+├── middleware/       # Express middleware
+├── poller/          # Message polling system
+├── services/        # Business logic services
+├── utils/           # Utility functions
+├── index.ts         # Main application entry
+└── config.js        # Configuration settings
 ```
 
-## Deploy
+### Running Tests
 
-You can copy and paste the `docker-compose.yml` file from this repo to deploy to Phala Cloud, follow the [tutorial](https://docs.phala.network/phala-cloud/create-cvm/create-with-docker-compose) in the Phala Docs.
-# TEE-Message
+```bash
+bun test
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## License
+
+[Add your license information here]
+
+## Support
+
+For support, please [add support contact information]
