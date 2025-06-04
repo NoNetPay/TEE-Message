@@ -70,7 +70,7 @@ User A (offline) creates a signed intent:
 1. Clone the repository:
 ```bash
 git clone https://github.com/NoNetPay/TEE-Message.git
-cd NoNetTee
+cd TEE-Message
 ```
 
 2. Install dependencies:
