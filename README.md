@@ -9,21 +9,6 @@ User A (offline) creates a signed intent:
 “Send 5 USDC to User B”
 ![image](https://github.com/user-attachments/assets/4c607b27-dad5-4dab-bcab-c05c9a6608f8)
 
-The protocol consists of several key components:
-
-1. **DStack Integration**: Utilizes the DStack SDK for secure key derivation and message handling
-2. **NERO Chain Integration**: Leverages the NERO Chain for message storage and retrieval
-3. **Message Polling System**: Continuously monitors for new messages
-4. **Multi-Chain Support**: Currently supports Ethereum and Solana key derivation
-
-### Key Features
-
-- Secure message encryption and decryption
-- Multi-chain wallet support
-- Real-time message polling
-- RESTful API endpoints for various operations
-- SQLite database for message persistence
-
 ## Deployed Contracts
 
 - **USDC Mock Contract**: `0xec690C24B7451B85B6167a06292e49B5DA822fBE`
